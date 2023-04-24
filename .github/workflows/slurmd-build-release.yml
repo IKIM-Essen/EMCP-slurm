@@ -10,11 +10,8 @@ env:
   BUILDLOG_SUFFIX: .buildlog
 
 jobs:
-  slurm-build:
-    strategy:
-      matrix:
-        os: ["ubuntu-22.04"]
-    runs-on: ${{ matrix.os }}
+  build-debs-and-release:
+    runs-on: ubuntu-22.04
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
@@ -58,11 +55,12 @@ jobs:
           set -o pipefail
           dpkg-deb -c "${BUILDDIR}"/slurm-wlm-basic-plugins_*_amd64.deb | grep 'gpu_nvml.so' > /dev/null
 
-      - name: Upload the build output
+      - name: Upload the build output (except slurmctld)
         uses: actions/upload-artifact@v3
         with:
           name: slurm-build-output
           path: |
             ${{ env.BUILDDIR }}/*.deb
             ${{ env.BUILDDIR }}/*${{ env.BUILDLOG_SUFFIX }}
+            !${{ env.BUILDDIR }}/slurmctld*.deb
           if-no-files-found: error

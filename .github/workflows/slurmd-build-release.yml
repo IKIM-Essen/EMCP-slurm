@@ -10,7 +10,6 @@ on:
         type: boolean
 
 env:
-  UBUNTU_RUNNER_VERSION: "22.04"
   NVIDIA_DRIVER_VERSION: "520"
   NVIDIA_CUDA_VERSION: "12-1"
   BUILDDIR: build
@@ -18,7 +17,10 @@ env:
 
 jobs:
   build-debs-and-release:
-    runs-on: ubuntu-${{ env.UBUNTU_RUNNER_VERSION }}
+    strategy:
+      matrix:
+        ubuntu_runner_version: ["22.04"]
+    runs-on: ubuntu-${{ matrix.ubuntu_runner_version }}
     permissions:
       contents: write
     env:
@@ -78,11 +80,11 @@ jobs:
         if: ${{ inputs.release }}
         uses: softprops/action-gh-release@v1
         with:
-          name: ubuntu-${{ env.UBUNTU_RUNNER_VERSION }}
+          name: ubuntu-${{ matrix.ubuntu_runner_version }}
           body: |
             # Slurm build with gpu/nvml
 
-            Built on Ubuntu ${{ env.UBUNTU_RUNNER_VERSION }} with the following NVIDIA dependencies:
+            Built on Ubuntu ${{ matrix.ubuntu_runner_version }} with the following NVIDIA dependencies:
 
             - libnvidia-compute-${{ env.NVIDIA_DRIVER_VERSION }}
             - cuda-nvml-dev-${{ env.NVIDIA_CUDA_VERSION }}

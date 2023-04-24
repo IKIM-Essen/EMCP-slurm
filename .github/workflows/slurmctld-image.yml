@@ -16,10 +16,12 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/slurmctld
-  UBUNTU_BASE_TAG: "22.04"
 
 jobs:
   build-and-push-image:
+    strategy:
+      matrix:
+        ubuntu_base_tag: ["22.04"]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,7 +48,7 @@ jobs:
             type=ref,event=tag
             type=ref,event=pr
             # On the default branch, use a tag which reflects the base image
-            type=raw,value=ubuntu-${{ env.UBUNTU_BASE_TAG }},enable={{is_default_branch}}
+            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -56,4 +58,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            UBUNTU_BASE_TAG=${{ env.UBUNTU_BASE_TAG }}
+            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}

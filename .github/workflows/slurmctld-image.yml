@@ -44,11 +44,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=ref,event=pr
             # On the default branch, use a tag which reflects the base image
             type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
+            # On other branches, add the base image name to the tag as a suffix
+            type=ref,event=branch,suffix=ubuntu-${{ matrix.ubuntu_base_tag }}
+            type=ref,event=tag,suffix=ubuntu-${{ matrix.ubuntu_base_tag }}
+            type=ref,event=pr,suffix=ubuntu-${{ matrix.ubuntu_base_tag }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4

@@ -49,8 +49,8 @@ RUN mkdir "/home/$USERNAME/.ssh" \
 COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
 
-# Create directories used by SLURM.
-RUN mkdir "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURMCTLD_PID_DIR" \
+# Create SLURM directories with the appropriate ownership.
+RUN mkdir -p "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURMCTLD_PID_DIR" \
     && chown slurm:slurm "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURMCTLD_PID_DIR"
 
 # Copy the supervisor definition files.

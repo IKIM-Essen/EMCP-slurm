@@ -1,6 +1,7 @@
 name: Create and publish the slurmctld container image
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/slurmctld
+  UBUNTU_BASE_TAG: "22.04"
 
 jobs:
   build-and-push-image:
@@ -39,11 +41,19 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            # On the default branch, use a tag which reflects the base image
+            type=raw,value=ubuntu-${{ env.UBUNTU_BASE_TAG }},enable={{is_default_branch}}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: docker/slurmctld
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UBUNTU_BASE_TAG=${{ env.UBUNTU_BASE_TAG }}

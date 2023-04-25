@@ -45,9 +45,9 @@ jobs:
 
       - name: Add the ubuntu source repository
         run: |
-          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO} universe main multiverse restricted"          >> /etc/apt/sources.list.d/debsrc.list
-          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}-updates universe main multiverse restricted"  >> /etc/apt/sources.list.d/debsrc.list
-          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}-security universe main multiverse restricted" >> /etc/apt/sources.list.d/debsrc.list
+          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO} universe main multiverse restricted"          | sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}-updates universe main multiverse restricted"  | sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}-security universe main multiverse restricted" | sudo tee -a /etc/apt/sources.list.d/debsrc.list
 
       - name: Install the build dependencies
         run: |

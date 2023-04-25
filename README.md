@@ -12,4 +12,4 @@ Changes to the `docker` directory trigger the container image workflow. The imag
 
 ## Building the deb packages
 
-To trigger the deb build workflow, create a tag with the format `v*.*.*`, replacing the wildcards with a slurm version number which exists in the Ubuntu source repositories. For example, the tag `v21.08.5` rebuilds slurm version 21.08.5 with nvml support.
+To trigger the deb build workflow, create a tag with the format `*.*.*-*` matching a slurm version number from the Ubuntu source repositories. For example, the tag `21.08.5-2ubuntu1` rebuilds the corresponding slurm version with nvml support.

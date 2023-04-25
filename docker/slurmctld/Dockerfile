@@ -1,9 +1,10 @@
-ARG SLURM_COMPONENT="slurmctld"
+ARG BASE_IMG
 
-FROM ../slurmbase/Dockerfile
+FROM ${BASE_IMG}
 
 # Install packages.
 RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
     && apt-get -y install --no-install-recommends slurmctld \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*

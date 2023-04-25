@@ -24,7 +24,7 @@ jobs:
       matrix:
         ubuntu-base-tag:
           - "22.04"
-    uses: ikim-essen/${{ github.repository }}/.github/workflows/slurm-base-image.yml@main
+    uses: ./.github/workflows/slurm-base-image.yml
     with:
       ubuntu-base-tag: ${{ matrix.ubuntu-base-tag }}
 

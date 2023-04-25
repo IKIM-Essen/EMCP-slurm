@@ -19,10 +19,14 @@ env:
 
 jobs:
   build-and-push-image:
-    strategy:
-      matrix:
-        ubuntu_base_tag: ["22.04"]
     runs-on: ubuntu-latest
+    needs: build-base-image
+    strategy:
+      fail-fast: true
+      matrix:
+        ubuntu_base_tag:
+          - "22.04"
+    
     permissions:
       contents: read
       packages: write
@@ -37,6 +41,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retrieve base image build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: baseimg-${{ matrix.ubuntu_base_tag }}
+          path: /tmp
+      
+      - name: Load base image
+        run: |
+          docker load --input /tmp/baseimg-${{ matrix.ubuntu_base_tag }}.tar
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -58,4 +72,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}
+            BASE_IMG="${{ env.REGISTRY }}/${{ github.repository }}/slurmbase:main"

@@ -10,11 +10,19 @@ on:
         options:
           - "22.04"
           - "20.04"
+    outputs:
+      base-img-reference:
+        description: 'Full reference to the generated image'
+        value: ${{ jobs.build-base-image.img_ref }}
   workflow_call:
     inputs:
       ubuntu-base-tag:
         required: true
         type: string
+    outputs:
+      base-img-reference:
+        description: 'Full reference to the generated image'
+        value: ${{ jobs.build-base-image.img_ref }}
 
 env:
   REGISTRY: ghcr.io
@@ -23,7 +31,8 @@ env:
 jobs:
   build-base-image:
     runs-on: ubuntu-latest
-    
+    outputs:
+      img_ref: ${{ steps.meta.outputs.tags }}
     permissions:
       contents: read
       packages: write

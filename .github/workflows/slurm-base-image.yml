@@ -10,10 +10,6 @@ on:
         options:
           - "22.04"
           - "20.04"
-    outputs:
-      base-img-reference:
-        description: 'Full reference to the generated image'
-        value: ${{ jobs.build-base-image.img_ref }}
   workflow_call:
     inputs:
       ubuntu-base-tag:

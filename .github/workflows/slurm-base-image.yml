@@ -2,21 +2,19 @@ name: Build and upload the slurm base image
 
 on:
   workflow_dispatch:
+    inputs:
+      ubuntu-base-tag:
+        description: 'Ubuntu version'
+        required: true
+        type: choice
+        options:
+          - "22.04"
+          - "20.04"
   workflow_call:
     inputs:
       ubuntu-base-tag:
         required: true
         type: string
-  push:
-    branches:
-      - main
-    paths:
-      - docker/slurmbase/**
-  pull_request:
-    branches:
-      - main
-    paths:
-      - docker/slurmbase/**
 
 env:
   REGISTRY: ghcr.io

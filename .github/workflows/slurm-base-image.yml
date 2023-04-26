@@ -28,7 +28,7 @@ jobs:
   build-base-image:
     runs-on: ubuntu-latest
     outputs:
-      img_ref: ${{ steps.meta.outputs.tags }}
+      img_ref: ${{ steps.base_img_ref.outputs.base }}
     permissions:
       contents: read
       packages: write
@@ -51,6 +51,10 @@ jobs:
             type=ref,event=pr
             # On the default branch, use a tag which reflects the base image
             type=raw,value=ubuntu-${{ inputs.ubuntu-base-tag }},enable={{is_default_branch}}
+
+      - name: Setup base-img-reference output
+        id: base_img_ref
+        run: echo "base=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
 
       - name: Build the common base image
         uses: docker/build-push-action@v4

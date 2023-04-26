@@ -82,4 +82,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BASE_IMG="${{ needs.build-base-image.outputs.base-img-reference }}"
+            BASE_IMG=${{ needs.build-base-image.outputs.base-img-reference }}

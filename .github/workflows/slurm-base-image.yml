@@ -18,7 +18,7 @@ on:
     outputs:
       base-img-reference:
         description: 'Full reference to the generated image'
-        value: ${{ jobs.build-base-image.img_ref }}
+        value: ${{ jobs.build-base-image.outputs.img_ref }}
 
 env:
   REGISTRY: ghcr.io

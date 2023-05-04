@@ -33,16 +33,6 @@ RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/99-${USERNAME} \
     && chmod 440 /etc/sudoers.d/99-${USERNAME} \
     && visudo -c
 
-# Allow logging in via ssh as the created user.
-# The README file is included in the COPY instruction to prevent it from failing
-# if no .pub files are present.
-COPY ssh/*.pub ssh/README /tmp/ssh/
-RUN mkdir "/home/$USERNAME/.ssh" \
-    && for pubkey in /tmp/ssh/*.pub; do (cat "$pubkey"; echo) >> "/home/$USERNAME/.ssh/authorized_keys"; done \
-    && chmod 600 "/home/$USERNAME/.ssh/authorized_keys" \
-    && chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.ssh" \
-    && rm -rf /tmp/ssh
-
 # Configure sshd.
 COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
@@ -58,3 +48,4 @@ COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/
 COPY entrypoint.sh /entrypoint.sh
 
 VOLUME ["/ipaadmin"]
+VOLUME [ "/home/${USERNAME}/.ssh" ]

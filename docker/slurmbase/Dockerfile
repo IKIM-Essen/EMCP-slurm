@@ -9,6 +9,7 @@ ARG USER_GID=${USER_UID}
 ARG SLURM_STATE_SAVE_LOCATION="/var/spool/slurm"
 ARG SLURM_LOG_DIR=/var/log/slurm
 ARG SLURM_PID_DIR=/run/slurm
+ARG MUNGE_SOCKET_DIR=/run/munge
 
 ENV TZ=Etc/UTC
 
@@ -38,8 +39,9 @@ COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
 
 # Create directories used by SLURM.
-RUN mkdir "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
-    && chown "${USERNAME}:${USERNAME}" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR"
+RUN mkdir "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" "$MUNGE_SOCKET_DIR" \
+    && chown "${USERNAME}:${USERNAME}" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
+    && chown "munge:munge" "$MUNGE_SOCKET_DIR"
 
 # Copy the supervisor definition files.
 COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/

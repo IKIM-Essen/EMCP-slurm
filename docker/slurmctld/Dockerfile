@@ -1,5 +1,4 @@
 ARG BASE_IMG
-ARG USERNAME="ikimslurm"
 
 FROM ${BASE_IMG}
 
@@ -17,6 +16,5 @@ ENTRYPOINT ["/entrypoint.sh"]
 CMD ["--nodaemon"]
 
 VOLUME ["/ipaadmin"]
-VOLUME [ "/home/${USERNAME}/.ssh" ]
 EXPOSE 22
 EXPOSE 6817

@@ -48,4 +48,3 @@ COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/
 COPY entrypoint.sh /entrypoint.sh
 
 VOLUME ["/ipaadmin"]
-VOLUME [ "/home/${USERNAME}/.ssh" ]

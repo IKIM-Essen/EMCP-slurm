@@ -10,15 +10,6 @@ on:
         options:
           - "22.04"
           - "20.04"
-  workflow_call:
-    inputs:
-      ubuntu-base-tag:
-        required: true
-        type: string
-    outputs:
-      base-img-reference:
-        description: 'Full reference to the generated image'
-        value: ${{ jobs.build-base-image.outputs.img_ref }}
   push:
     branches:
       - main
@@ -39,6 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       img_ref: ${{ steps.base_img_ref.outputs.base }}
+    
+    strategy:
+      matrix:
+        ubuntu-base-tag:
+          - "22.04"
+    
     permissions:
       contents: read
       packages: write
@@ -54,13 +51,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/slurmbase
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
             # On the default branch, use a tag which reflects the base image
-            type=raw,value=ubuntu-${{ inputs.ubuntu-base-tag }},enable={{is_default_branch}}
+            type=raw,value=ubuntu-${{ matrix.ubuntu-base-tag }},enable={{is_default_branch}}
 
       - name: Setup base-img-reference output
         id: base_img_ref
@@ -74,4 +71,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            UBUNTU_BASE_TAG=${{ inputs.ubuntu-base-tag }}
+            UBUNTU_BASE_TAG=${{ matrix.ubuntu-base-tag }}

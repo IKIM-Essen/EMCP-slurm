@@ -19,6 +19,16 @@ on:
       base-img-reference:
         description: 'Full reference to the generated image'
         value: ${{ jobs.build-base-image.outputs.img_ref }}
+  push:
+    branches:
+      - main
+    paths:
+      - docker/slurmbase/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docker/slurmbase/**
 
 env:
   REGISTRY: ghcr.io
@@ -60,15 +70,8 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: docker/slurmbase
-          push: false
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             UBUNTU_BASE_TAG=${{ inputs.ubuntu-base-tag }}
-          outputs: type=docker,dest=/tmp/baseimg-${{ inputs.ubuntu-base-tag }}.tar
-      
-      - name: Upload the artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: baseimg-${{ inputs.ubuntu-base-tag }}
-          path: /tmp/baseimg-${{ inputs.ubuntu-base-tag }}.tar

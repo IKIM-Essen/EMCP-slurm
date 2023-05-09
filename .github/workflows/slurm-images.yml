@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Repository name conversion
         run: |
-          echo "BASE_IMG=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+          echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -74,4 +74,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BASE_IMG=${{ env.BASE_IMG }}
+            BASE_IMG=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/slurmbase

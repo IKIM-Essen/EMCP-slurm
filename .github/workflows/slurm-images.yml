@@ -17,7 +17,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BASE_IMG: ${{ github.env.REGISTRY }}/${{ github.repository }}/slurmbase:latest
+  BASE_IMG: ${{ github.repository }}/slurmbase
 
 jobs:
 

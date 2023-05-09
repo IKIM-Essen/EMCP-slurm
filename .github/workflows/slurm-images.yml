@@ -17,7 +17,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BASE_IMG: "${github.repository,,}/slurmbase"
 
 jobs:
 
@@ -40,6 +39,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Repository name conversion
+        run: |
+          echo "BASE_IMG=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Checkout the repository
         uses: actions/checkout@v3
 

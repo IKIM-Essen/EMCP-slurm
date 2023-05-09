@@ -1,94 +1,84 @@
 name: Rebuild slurm with nvml autodetect support
 
 on:
-  workflow_dispatch:
-    inputs:
-      release:
-        description: "Create a release?"
-        required: true
-        default: false
-        type: boolean
+  push:
+    tags:
+      - "*.*.*-*"
+
+defaults:
+  run:
+    shell: /usr/bin/bash -eo pipefail {0}
 
 env:
-  NVIDIA_DRIVER_VERSION: "520"
-  NVIDIA_CUDA_VERSION: "12-1"
-  BUILDDIR: build
-  BUILDLOG_SUFFIX: .buildlog
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   build-debs-and-release:
     strategy:
       matrix:
-        ubuntu_runner_version: ["22.04"]
-    runs-on: ubuntu-${{ matrix.ubuntu_runner_version }}
+        runner_version: ["20.04", "22.04"]
+    runs-on: ubuntu-${{ matrix.runner_version }}
     permissions:
       contents: write
     env:
-      DEBIAN_FRONTEND: noninteractive
+      NVIDIA_DRIVER_VERSION: "520"
+      NVIDIA_CUDA_VERSION: "12-1"
+      DEB_SOURCE_REPO: jammy universe
     steps:
-      - name: Update the apt index
-        run: sudo apt-get update
+      - name: Prepare the environment
+        run: |
+          SLURM_VERSION="${{ github.ref_name }}"
+          BUILDDIR="slurm-${SLURM_VERSION}-ubuntu${{ matrix.runner_version }}-debs"
+          echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
+          echo "BUILDDIR=${BUILDDIR}" >> "${GITHUB_ENV}"
+          mkdir "${BUILDDIR}"
 
-      - name: Install the NVIDIA package repository
+      - name: Install the Ubuntu build dependencies
+        run: |
+          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}" | sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          sudo apt-get update
+          sudo apt-get -y build-dep --only-source "slurm-wlm=${SLURM_VERSION}"
+
+      - name: Install the NVIDIA build dependencies
         env:
           CUDA_KEYRING_VERSION: "1.1-1"
         run: |
-          sudo apt-get -y install \
-            ca-certificates \
-            curl
+          sudo apt-get -y install ca-certificates curl
           source /etc/os-release
           curl -LO "https://developer.download.nvidia.com/compute/cuda/repos/${ID}$(echo ${VERSION_ID} | tr -d ".")/x86_64/cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
           sudo dpkg -i "cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
-          sudo apt-get update
           sudo ln -s "/usr/local/cuda-$(echo "${NVIDIA_CUDA_VERSION}" | tr "-" "." )" /usr/local/cuda
-
-      - name: Install the NVIDIA build dependencies
-        run: |
+          sudo apt-get update
           sudo apt-get -y install \
             "libnvidia-compute-${NVIDIA_DRIVER_VERSION}" \
             "cuda-nvml-dev-${NVIDIA_CUDA_VERSION}"
 
-      - name: Install the regular build dependencies
-        run: |
-          sudo sed -i 's/^# deb-src/deb-src/' /etc/apt/sources.list
-          sudo apt-get update
-          sudo apt-get build-dep slurm-wlm
-
       - name: Build the package
-        run: |
-          set -o pipefail
-          mkdir "${BUILDDIR}"
-          cd "${BUILDDIR}"
-          sudo apt-get source --compile slurm-wlm | tee "slurm-wlm${BUILDLOG_SUFFIX}"
+        working-directory: ${{ env.BUILDDIR }}
+        run: sudo apt-get source --only-source --compile "slurm-wlm=${SLURM_VERSION}" | tee slurm-wlm.buildlog
 
       - name: Verify that the nvml library was built
+        working-directory: ${{ env.BUILDDIR }}
+        run: dpkg-deb -c slurm-wlm-basic-plugins_*_amd64.deb | grep gpu_nvml.so > /dev/null
+
+      - name: Create the release archive
         run: |
-          set -o pipefail
-          dpkg-deb -c "${BUILDDIR}"/slurm-wlm-basic-plugins_*_amd64.deb | grep 'gpu_nvml.so' > /dev/null
+          tar --verbose --create --auto-compress \
+            --file "${BUILDDIR}.tar.gz" \
+            "${BUILDDIR}"/*.deb \
+            "${BUILDDIR}"/*.buildinfo \
+            "${BUILDDIR}"/*.changes \
+            "${BUILDDIR}"/*.buildlog
 
-      - name: Upload the build artifacts
-        if: ${{ !inputs.release }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: slurm-build-output
-          path: |
-            ${{ env.BUILDDIR }}/*.deb
-            ${{ env.BUILDDIR }}/*${{ env.BUILDLOG_SUFFIX }}
-          if-no-files-found: error
-
-      - name: Create a release based on the Ubuntu runner version
-        if: ${{ inputs.release }}
+      - name: Create the release
         uses: softprops/action-gh-release@v1
         with:
-          name: ubuntu-${{ matrix.ubuntu_runner_version }}
           body: |
-            # Slurm build with gpu/nvml
+            # Slurm ${{ env.SLURM_VERSION }} with gpu/nvml
 
-            Built on Ubuntu ${{ matrix.ubuntu_runner_version }} with the following NVIDIA dependencies:
+            Built with the following NVIDIA dependencies:
 
             - libnvidia-compute-${{ env.NVIDIA_DRIVER_VERSION }}
             - cuda-nvml-dev-${{ env.NVIDIA_CUDA_VERSION }}
-          files: |
-            ${{ env.BUILDDIR }}/*.deb
-            ${{ env.BUILDDIR }}/*${{ env.BUILDLOG_SUFFIX }}
+          files: ${{ env.BUILDDIR }}.tar.gz
           fail_on_unmatched_files: true

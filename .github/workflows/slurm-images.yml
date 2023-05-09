@@ -74,4 +74,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BASE_IMG=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/slurmbase
+            BASE_IMG=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/slurmbase:ubuntu-${{matrix.ubuntu_base_tag}}

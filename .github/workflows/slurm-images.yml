@@ -29,6 +29,8 @@ jobs:
       slurmdbd: ${{ steps.filter.outputs.slurmdbd }}
 
     steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
       - name: check which paths changed
         uses: dorny/paths-filter@v2
         id: filter

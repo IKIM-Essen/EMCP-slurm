@@ -85,8 +85,6 @@ jobs:
           tags: |
             # On the default branch, use a tag which reflects the base image
             type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
-            type=ref,event=branch,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }},enable={{!is_default_branch}}
-            type=ref,event=tag,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
 
       - name: Setup base-img-reference output
@@ -150,9 +148,6 @@ jobs:
           tags: |
             # On the default branch, use a tag which reflects the base image
             type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
-            # On other branches, add the base image name to the tag as a suffix
-            type=ref,event=branch,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
-            type=ref,event=tag,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
 
       - name: Build and push
@@ -212,8 +207,6 @@ jobs:
             # On the default branch, use a tag which reflects the base image
             type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
             # On other branches, add the base image name to the tag as a suffix
-            type=ref,event=branch,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
-            type=ref,event=tag,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
 
       - name: Build and push

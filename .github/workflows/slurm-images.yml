@@ -49,7 +49,7 @@ jobs:
     if: ${{ needs.modified-paths.outputs.slurmbase == 'true' }}
     strategy:
       matrix:
-        ubuntu-base-tag:
+        ubuntu_base_tag:
           - "22.04"
     
     permissions:
@@ -86,7 +86,7 @@ jobs:
             type=ref,event=tag,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             # On the default branch, use a tag which reflects the base image
-            type=raw,value=ubuntu-${{ matrix.ubuntu-base-tag }},enable={{is_default_branch}}
+            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
 
       - name: Setup base-img-reference output
         id: base_img_ref
@@ -100,7 +100,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            UBUNTU_BASE_TAG=${{ matrix.ubuntu-base-tag }}
+            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}
 
 
   build-push-base-changed:

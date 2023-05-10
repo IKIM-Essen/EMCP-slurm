@@ -83,11 +83,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            # On the default branch, use a tag which reflects the base image
+            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
             type=ref,event=branch,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=tag,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
             type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
-            # On the default branch, use a tag which reflects the base image
-            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
 
       - name: Setup base-img-reference output
         id: base_img_ref

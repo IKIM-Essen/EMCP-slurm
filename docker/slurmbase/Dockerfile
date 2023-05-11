@@ -39,7 +39,7 @@ COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
 
 # Create directories used by SLURM.
-RUN mkdir "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" "$MUNGE_SOCKET_DIR" \
+RUN mkdir -p "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" "$MUNGE_SOCKET_DIR" \
     && chown "${USERNAME}:${USERNAME}" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
     && chown "munge:munge" "$MUNGE_SOCKET_DIR"
 

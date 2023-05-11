@@ -51,6 +51,7 @@ jobs:
     strategy:
       matrix:
         ubuntu_base_tag:
+          - "20.04"
           - "22.04"
     
     permissions:
@@ -113,6 +114,7 @@ jobs:
     strategy:
       matrix:
         ubuntu_base_tag:
+          - "20.04"
           - "22.04"
         slurm_component:
           - "slurmctld"
@@ -171,6 +173,7 @@ jobs:
     strategy:
       matrix:
         ubuntu_base_tag:
+          - "20.04"
           - "22.04"
         slurm_component:
           - "slurmctld"

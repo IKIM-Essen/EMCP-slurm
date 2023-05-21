@@ -6,11 +6,6 @@ ARG USERNAME="ikimslurm"
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
 
-ARG SLURM_STATE_SAVE_LOCATION="/var/spool/slurm"
-ARG SLURM_LOG_DIR=/var/log/slurm
-ARG SLURM_PID_DIR=/run/slurm
-ARG MUNGE_SOCKET_DIR=/run/munge
-
 ENV TZ=Etc/UTC
 
 # Install packages.
@@ -38,15 +33,9 @@ RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/99-${USERNAME} \
 COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
 
-# Create the directories used by the Slurm daemons.
-# These directories must be configured in slurm.conf and their owner must match
-# the configuration parameter "SlurmUser" (https://slurm.schedmd.com/slurm.conf.html#OPT_SlurmUser).
-RUN mkdir -p "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
-    && chown "slurm:slurm" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR"
-
 # Create the Munge socket directory.
-RUN mkdir -p "$MUNGE_SOCKET_DIR" \
-    && chown "munge:munge" "$MUNGE_SOCKET_DIR"
+RUN mkdir -p /run/munge \
+    && chown "munge:munge" /run/munge
 
 # Copy the supervisor definition files.
 COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/

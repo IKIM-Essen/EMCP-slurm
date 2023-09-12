@@ -17,4 +17,5 @@ ipa-client-install \
 	< /ipaadmin/password
 
 # Start supervisord.
+# Note that slurm daemons are not configured to start automatically.
 exec /usr/bin/supervisord "$@"

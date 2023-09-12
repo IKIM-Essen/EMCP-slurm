@@ -62,5 +62,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args:
-            - UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}
+          build-args: |
+            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}

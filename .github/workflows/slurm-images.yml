@@ -15,28 +15,102 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  BASE_NAME: slurmbase
 
 jobs:
-  build-push-daemons:
+  sanitize-registry:
     runs-on: ubuntu-latest
 
+    outputs:
+      path: ${{ steps.registry.outputs.path }}
+
+    steps:
+      - name: Convert the registry path to lowercase
+        id: registry
+        run: |
+          REGISTRYPATH="${{ env.REGISTRY }}/${{ github.repository }}"
+          echo "path=${REGISTRYPATH,,}" >> "${GITHUB_OUTPUT}"
+
+
+  build-base:
+    runs-on: ubuntu-latest
+
+    needs: sanitize-registry
+
     strategy:
+      # NOTE: make sure that each run produces a unique value in the outputs
+      # dictionary.
       matrix:
         ubuntu_base_tag:
           - "20.04"
           - "22.04"
-    
-    env:
-      IMAGE_NAME: ${{ github.repository }}/slurm-daemons
+
+    # The outputs from this job are fed to the matrix of the downstream job.
+    outputs:
+      variant_20_04: ${{ steps.tag.outputs.variant_20_04 }}
+      variant_22_04: ${{ steps.tag.outputs.variant_22_04 }}
 
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
+      - name: Collect Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ needs.sanitize-registry.outputs.path }}/${{ env.BASE_NAME }}
+          tags: |
+            # On the default branch, use a tag which reflects the ubuntu base
+            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
+            # On other branches, add the ubuntu base name to the tag as a suffix
+            type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
 
+      - name: Save the tag variant for downstream jobs
+        id: tag
+        run: |
+          MATRIX_ITEM="$(echo -n "${{ matrix.ubuntu_base_tag }}" | tr '.' '_')"
+          echo "variant_${MATRIX_ITEM}=${{ steps.meta.outputs.version }}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the base image
+        uses: docker/build-push-action@v5
+        with:
+          context: "{{defaultContext}}:docker/${{ env.BASE_NAME }}"
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}
+          outputs: type=docker,dest=/tmp/${{ steps.meta.outputs.version }}.tar
+
+      - name: Save the base image
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.meta.outputs.version }}
+          path: /tmp/${{ steps.meta.outputs.version }}.tar
+          retention-days: 1
+
+
+  build-push-daemons:
+    runs-on: ubuntu-latest
+
+    needs:
+      - sanitize-registry
+      - build-base
+
+    strategy:
+      matrix:
+        variant: ${{ needs.build-base.outputs.* }}
+        daemon:
+          - slurmctld
+          - slurmdbd
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
       - name: Log into the Container registry
         uses: docker/login-action@v3
         with:
@@ -44,23 +118,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Download the base image
+        uses: actions/download-artifact@v3
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            # On the default branch, use a tag which reflects the base image
-            type=raw,value=ubuntu-${{ matrix.ubuntu_base_tag }},enable={{is_default_branch}}
-            # On other branches, add the base image name to the tag as a suffix
-            type=ref,event=pr,suffix=-ubuntu-${{ matrix.ubuntu_base_tag }}
+          name: ${{ matrix.variant }}
+          path: /tmp
 
-      - name: Build and push
+      - name: Load the base image
+        run: |
+          docker load --input /tmp/${{ matrix.variant }}.tar
+          docker image ls -a
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Use the regular docker driver since the default container driver
+          # can't access the local base image.
+          driver: docker
+
+      - name: Build and push the final image
         uses: docker/build-push-action@v5
         with:
-          context: docker/slurm-daemons
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          context: "{{defaultContext}}:docker/${{ matrix.daemon }}"
+          tags: ${{ needs.sanitize-registry.outputs.path }}/${{ matrix.daemon }}:${{ matrix.variant }}
           build-args: |
-            UBUNTU_BASE_TAG=${{ matrix.ubuntu_base_tag }}
+            SLURMBASE=${{ needs.sanitize-registry.outputs.path }}/${{ env.BASE_NAME }}:${{ matrix.variant }}
+          push: false

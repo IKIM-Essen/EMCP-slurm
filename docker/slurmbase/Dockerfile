@@ -18,8 +18,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         freeipa-client \
         munge \
         openssh-server \
-        slurmctld \
-        slurmdbd \
+        slurm-wlm-basic-plugins \
         sudo \
         supervisor \
     && apt-get clean -y \
@@ -35,7 +34,7 @@ RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/99-${USERNAME} \
     && visudo -c
 
 # Configure sshd.
-COPY etc/ssh/sshd_config.d/*.conf /etc/ssh/sshd_config.d/
+COPY etc/ssh/sshd_config.d/auth.conf /etc/ssh/sshd_config.d/
 RUN mkdir /run/sshd
 
 # Create the Munge socket directory.
@@ -43,13 +42,16 @@ RUN mkdir -p /run/munge \
     && chown "munge:munge" /run/munge
 
 # Copy the supervisor definition files.
-COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/
+COPY etc/supervisor/conf.d/sssd.conf \
+    etc/supervisor/conf.d/sshd.conf \
+    etc/supervisor/conf.d/munged.conf \
+    /etc/supervisor/conf.d/
 
 # Copy the entrypoint script.
 COPY entrypoint.sh /entrypoint.sh
 
-# Prepare directories for the slurm daemons.
-# Ownership is assigned to the user "slurm" created by the Ubuntu package.
+# Prepare directories for the slurm daemons. Ownership is assigned to the user
+# "slurm" created by the slurm-wlm-basic-plugins package.
 RUN mkdir -p "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
     && chown "slurm:slurm" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR"
 
@@ -58,11 +60,4 @@ CMD ["--nodaemon"]
 
 VOLUME ["/ipaadmin"]
 
-# ssh port
 EXPOSE 22
-
-# slurmctld port
-EXPOSE 6817
-
-# slurmdbd port
-EXPOSE 6819

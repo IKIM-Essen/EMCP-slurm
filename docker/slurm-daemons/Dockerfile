@@ -5,6 +5,9 @@ FROM ubuntu:${UBUNTU_BASE_TAG}
 ARG USERNAME="ikimslurm"
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
+ARG SLURM_STATE_SAVE_LOCATION=/var/spool/slurm
+ARG SLURM_LOG_DIR=/var/log/slurm
+ARG SLURM_PID_DIR=/run/slurm
 
 ENV TZ=Etc/UTC
 
@@ -15,6 +18,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         freeipa-client \
         munge \
         openssh-server \
+        slurmctld \
+        slurmdbd \
         sudo \
         supervisor \
     && apt-get clean -y \
@@ -43,4 +48,21 @@ COPY etc/supervisor/conf.d/*.conf /etc/supervisor/conf.d/
 # Copy the entrypoint script.
 COPY entrypoint.sh /entrypoint.sh
 
+# Prepare directories for the slurm daemons.
+# Ownership is assigned to the user "slurm" created by the Ubuntu package.
+RUN mkdir -p "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR" \
+    && chown "slurm:slurm" "$SLURM_STATE_SAVE_LOCATION" "$SLURM_LOG_DIR" "$SLURM_PID_DIR"
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--nodaemon"]
+
 VOLUME ["/ipaadmin"]
+
+# ssh port
+EXPOSE 22
+
+# slurmctld port
+EXPOSE 6817
+
+# slurmdbd port
+EXPOSE 6819

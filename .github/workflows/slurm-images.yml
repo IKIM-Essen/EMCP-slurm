@@ -143,4 +143,4 @@ jobs:
           tags: ${{ needs.sanitize-registry.outputs.path }}/${{ matrix.daemon }}:${{ matrix.variant }}
           build-args: |
             SLURMBASE=${{ needs.sanitize-registry.outputs.path }}/${{ env.BASE_NAME }}:${{ matrix.variant }}
-          push: false
+          push: true

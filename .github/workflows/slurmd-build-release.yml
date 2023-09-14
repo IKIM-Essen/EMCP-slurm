@@ -21,8 +21,8 @@ jobs:
     permissions:
       contents: write
     env:
-      NVIDIA_DRIVER_VERSION: "520"
-      NVIDIA_CUDA_VERSION: "12-1"
+      NVIDIA_DRIVER_VERSION: "535"
+      NVIDIA_CUDA_VERSION: "12-2"
       DEB_SOURCE_REPO: jammy universe
     steps:
       - name: Prepare the environment

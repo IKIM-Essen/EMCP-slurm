@@ -5,7 +5,7 @@ FROM ubuntu:${UBUNTU_BASE_TAG}
 ARG USERNAME="ikimslurm"
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
-ARG SLURM_STATE_SAVE_LOCATION=/var/spool/slurm
+ARG SLURM_STATE_SAVE_LOCATION=/var/spool/slurmctld
 ARG SLURM_LOG_DIR=/var/log/slurm
 ARG SLURM_PID_DIR=/run/slurm
 

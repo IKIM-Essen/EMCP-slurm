@@ -4,7 +4,7 @@ on:
   push:
     # The tag must match the Ubuntu version of the slurm package.
     tags:
-      - "*.*.*-*"
+      - "*.*.*"
 
 defaults:
   run:
@@ -25,33 +25,34 @@ jobs:
       NVIDIA_DRIVER_VERSION: "535"
       NVIDIA_CUDA_VERSION: "12-2"
       CUDA_KEYRING_VERSION: "1.1-1"
+      SLURM_PKG_NAME: slurm-wlm
     steps:
       - name: Prepare the environment
         run: |
           SLURM_VERSION="${{ github.ref_name }}"
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
 
+          BUILDDIR="${SLURM_PKG_NAME}-${SLURM_VERSION}-ubuntu${{ matrix.runner_version }}-debs"
+          echo "BUILDDIR=${BUILDDIR}" >> "${GITHUB_ENV}"
+
           # Pick the correct source repository based on the version being built.
-          if echo "$SLURM_VERSION" | grep -q '^19\.'; then
-            SLURM_SRC_PKG="slurm-llnl"
+          SLURM_MAJOR="$(echo "$SLURM_VERSION" | grep -Eo '^[0-9]+\.' | grep -Eo '[0-9]+')"
+          if [ "${SLURM_MAJOR}" == "19" ]; then
             DEB_SOURCE_REPO="focal universe"
           else
-            SLURM_SRC_PKG="slurm-wlm"
             DEB_SOURCE_REPO="jammy universe"
           fi
-          echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
-          # Prepare the build directory.
-          BUILDDIR="${SLURM_SRC_PKG}-${SLURM_VERSION}-ubuntu${{ matrix.runner_version }}-debs"
-          echo "BUILDDIR=${BUILDDIR}" >> "${GITHUB_ENV}"
-          mkdir "${BUILDDIR}"
-
-      - name: Install the Ubuntu build dependencies
+      - name: Enable the source repository
         run: |
           echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}" | sudo tee -a /etc/apt/sources.list.d/debsrc.list
           sudo apt-get update
-          sudo apt-get -y build-dep --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
+
+      - name: Install the Ubuntu build dependencies
+        run: |
+          sudo apt-get -y build-dep "${SLURM_PKG_NAME}=${SLURM_VERSION}"
+          sudo apt-get -y install --no-install-recommends devscripts
 
       - name: Install the NVIDIA build dependencies
         run: |
@@ -65,9 +66,14 @@ jobs:
             "libnvidia-compute-${NVIDIA_DRIVER_VERSION}" \
             "cuda-nvml-dev-${NVIDIA_CUDA_VERSION}"
 
+      - name: Prepare the build directory
+        run: mkdir "${BUILDDIR}"
+
       - name: Build the package
         working-directory: ${{ env.BUILDDIR }}
-        run: sudo apt-get source --only-source --compile "${SLURM_SRC_PKG}=${SLURM_VERSION}" | tee "${BUILDDIR}.buildlog"
+        run: |
+          cd *"${SLURM_VERSION}"
+          debuild -us -uc -b
 
       - name: Verify that the nvml library was built
         working-directory: ${{ env.BUILDDIR }}
@@ -80,7 +86,7 @@ jobs:
             "${BUILDDIR}"/*.deb \
             "${BUILDDIR}"/*.buildinfo \
             "${BUILDDIR}"/*.changes \
-            "${BUILDDIR}"/*.buildlog
+            "${BUILDDIR}"/*.build
 
       - name: Create the release
         uses: softprops/action-gh-release@v1

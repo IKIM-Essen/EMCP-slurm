@@ -1,10 +1,6 @@
 name: Rebuild slurm with nvml autodetect support
 
 on:
-  # To trigger the workflow manually, provide a github.ref_name matching the
-  # Ubuntu version of the slurm package.
-  workflow_dispatch:
-
   push:
     # The tag must match the Ubuntu version of the slurm package.
     tags:

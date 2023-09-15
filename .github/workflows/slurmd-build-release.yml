@@ -25,7 +25,6 @@ jobs:
       NVIDIA_DRIVER_VERSION: "535"
       NVIDIA_CUDA_VERSION: "12-2"
       CUDA_KEYRING_VERSION: "1.1-1"
-      SLURM_SRC_PKG: slurm-wlm
     steps:
       - name: Prepare the environment
         run: |
@@ -34,10 +33,13 @@ jobs:
 
           # Pick the correct source repository based on the version being built.
           if echo "$SLURM_VERSION" | grep -q '^19\.'; then
+            SLURM_SRC_PKG="slurm-llnl"
             DEB_SOURCE_REPO="focal universe"
           else
+            SLURM_SRC_PKG="slurm-wlm"
             DEB_SOURCE_REPO="jammy universe"
           fi
+          echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
           # Prepare the build directory.

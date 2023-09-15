@@ -1,7 +1,12 @@
 name: Rebuild slurm with nvml autodetect support
 
 on:
+  # To trigger the workflow manually, provide a github.ref_name matching the
+  # Ubuntu version of the slurm package.
+  workflow_dispatch:
+
   push:
+    # The tag must match the Ubuntu version of the slurm package.
     tags:
       - "*.*.*-*"
 
@@ -24,21 +29,19 @@ jobs:
       NVIDIA_DRIVER_VERSION: "535"
       NVIDIA_CUDA_VERSION: "12-2"
       CUDA_KEYRING_VERSION: "1.1-1"
+      SLURM_SRC_PKG: slurm-wlm
     steps:
       - name: Prepare the environment
         run: |
           SLURM_VERSION="${{ github.ref_name }}"
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
 
-          # Pick the correct source package based on the version being built.
+          # Pick the correct source repository based on the version being built.
           if echo "$SLURM_VERSION" | grep -q '^19\.'; then
-            SLURM_SRC_PKG="slurm-llnl"
             DEB_SOURCE_REPO="focal universe"
           else
-            SLURM_SRC_PKG="slurm-wlm"
             DEB_SOURCE_REPO="jammy universe"
           fi
-          echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
           # Prepare the build directory.

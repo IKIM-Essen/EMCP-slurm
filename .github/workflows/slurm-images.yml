@@ -119,7 +119,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download the base image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ matrix.variant }}
           path: /tmp

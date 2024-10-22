@@ -1,9 +1,9 @@
-ARG UBUNTU_BASE_TAG=22.04
+ARG UBUNTU_BASE_TAG=23.04
 
 FROM ubuntu:${UBUNTU_BASE_TAG}
 
 ARG USERNAME="ikimslurm"
-ARG USER_UID=1000
+ARG USER_UID=1099
 ARG USER_GID=${USER_UID}
 ARG SLURM_STATE_SAVE_LOCATION=/var/spool/slurmctld
 ARG SLURM_LOG_DIR=/var/log/slurm
@@ -35,7 +35,7 @@ RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/99-${USERNAME} \
 
 # Configure sshd.
 COPY etc/ssh/sshd_config.d/auth.conf /etc/ssh/sshd_config.d/
-RUN mkdir /run/sshd
+RUN mkdir -p /run/sshd
 
 # Create the Munge socket directory.
 RUN mkdir -p /run/munge \

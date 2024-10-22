@@ -42,10 +42,12 @@ jobs:
       # dictionary.
       matrix:
         ubuntu_base_tag:
+          - "23.04"
           - "24.04"
 
     # The outputs from this job are fed to the matrix of the downstream job.
     outputs:
+      variant_23_04: ${{ steps.tag.outputs.variant_23_04 }}
       variant_24_04: ${{ steps.tag.outputs.variant_24_04 }}
 
     permissions:

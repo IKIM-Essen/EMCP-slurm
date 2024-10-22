@@ -35,7 +35,7 @@ RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/99-${USERNAME} \
 
 # Configure sshd.
 COPY etc/ssh/sshd_config.d/auth.conf /etc/ssh/sshd_config.d/
-RUN mkdir /run/sshd
+RUN mkdir -p /run/sshd
 
 # Create the Munge socket directory.
 RUN mkdir -p /run/munge \

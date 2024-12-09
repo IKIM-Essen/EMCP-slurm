@@ -67,10 +67,10 @@ jobs:
           done
           sudo apt-get update
 
-      - name: Install the Ubuntu build dependencies
+      - name: Install the Ubuntu build tools
         run: |
-          sudo apt-get -y build-dep --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
-          sudo apt-get -y install --no-install-recommends devscripts
+          sudo apt-get -y install --no-install-recommends \
+            devscripts equivs
 
       - name: Install the NVIDIA build dependencies
         run: |
@@ -79,11 +79,23 @@ jobs:
       - name: Prepare the build directory
         run: mkdir "${BUILDDIR}"
 
-      - name: Build the package
+      - name: Download the build sources
         working-directory: ${{ env.BUILDDIR }}
         run: |
           sudo apt-get source --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
-          cd "$(find -mindepth 1 -maxdepth 1 -type d -print -quit)"
+
+      - name: Install the build dependencies
+        working-directory: ${{ env.BUILDDIR }}
+        run: |
+          cd "${SLURM_SRC_PKG}-"*
+          mk-build-deps \
+            -t 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y' \
+            -i debian/control
+
+      - name: Build the package
+        working-directory: ${{ env.BUILDDIR }}
+        run: |
+          cd "${SLURM_SRC_PKG}-"*
           debuild -us -uc -b
 
       - name: Verify that the nvml library was built

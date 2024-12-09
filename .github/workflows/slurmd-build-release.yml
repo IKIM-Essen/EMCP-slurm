@@ -35,13 +35,13 @@ jobs:
             21.08.* )
               DEB_SOURCE_REPO="jammy universe"
               ;;
-            23.10.* )
+            23.02.* )
               DEB_SOURCE_REPO="mantic universe"
               ;;
-            24.04.* )
+            23.11.* )
               DEB_SOURCE_REPO="noble universe"
               ;;
-            24.10.* )
+            24.05.* )
               DEB_SOURCE_REPO="oracular universe"
               ;;
             * )

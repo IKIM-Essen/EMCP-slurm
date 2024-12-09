@@ -83,7 +83,7 @@ jobs:
             sudo tee -a /etc/apt/sources.list.d/debsrc.list
           # Use old-releases.ubuntu.com for non-LTS EOL versions.
           for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
-            sed -Ei \
+            sudo sed -Ei \
               '/ubuntu\.com\/ubuntu\/ (kinetic|lunar|mantic)/ {
                 s|http://[^.]*|http://old-releases|
               }' \

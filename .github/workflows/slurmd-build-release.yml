@@ -17,7 +17,7 @@ jobs:
   build-debs-and-release:
     strategy:
       matrix:
-        runner_version: ["20.04", "22.04"]
+        runner_version: ["22.04", "24.04"]
     runs-on: ubuntu-${{ matrix.runner_version }}
     permissions:
       contents: write

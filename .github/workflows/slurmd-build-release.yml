@@ -106,7 +106,7 @@ jobs:
       - name: Download the build sources
         working-directory: ${{ env.BUILDDIR }}
         run: |
-          sudo apt-get source --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
+          apt-get source --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
           cd "${SLURM_SRC_PKG}-"*
           "${PATCHES_SH}"
 
@@ -114,7 +114,7 @@ jobs:
         working-directory: ${{ env.BUILDDIR }}
         run: |
           cd "${SLURM_SRC_PKG}-"*
-          mk-build-deps \
+          sudo mk-build-deps \
             -t 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y' \
             -i debian/control
 

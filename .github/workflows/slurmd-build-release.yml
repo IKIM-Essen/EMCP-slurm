@@ -38,6 +38,9 @@ jobs:
             21.08.* )
               DEB_SOURCE_REPO="jammy universe"
               ;;
+            22.05.* )
+              DEB_SOURCE_REPO="lunar universe"
+              ;;
             23.02.* )
               DEB_SOURCE_REPO="mantic universe"
               ;;

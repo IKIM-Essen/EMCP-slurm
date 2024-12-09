@@ -28,14 +28,25 @@ jobs:
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
 
           # Pick the correct source package based on the version being built.
-          SLURM_MAJOR="$(echo "$SLURM_VERSION" | grep -Eo '^[0-9]+\.' | grep -Eo '[0-9]+')"
-          if [ "${SLURM_MAJOR}" == "19" ]; then
-            SLURM_SRC_PKG="slurm-llnl"
-            DEB_SOURCE_REPO="focal universe"
-          else
-            SLURM_SRC_PKG="slurm-wlm"
-            DEB_SOURCE_REPO="jammy universe"
-          fi
+          SLURM_SRC_PKG="slurm-wlm"
+          case "${SLURM_VERSION}" in
+            21.08.* )
+              DEB_SOURCE_REPO="jammy universe"
+              ;;
+            23.10.* )
+              DEB_SOURCE_REPO="mantic universe"
+              ;;
+            24.04.* )
+              DEB_SOURCE_REPO="noble universe"
+              ;;
+            24.10.* )
+              DEB_SOURCE_REPO="oracular universe"
+              ;;
+            * )
+              1>&2 echo "No deb source repo for Slurm version ${SLURM_VERSION}"
+              false
+              ;;
+          esac
           echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
@@ -44,7 +55,16 @@ jobs:
 
       - name: Enable the source repository
         run: |
-          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}" | sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          echo "deb-src http://archive.ubuntu.com/ubuntu/ ${DEB_SOURCE_REPO}" |
+            sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          # Use old-releases.ubuntu.com for non-LTS EOL versions.
+          for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+            sed -Ei \
+              '/ubuntu\.com\/ubuntu\/ (kinetic|lunar|mantic)/ {
+                s|http://[^.]*|http://old-releases|
+              }' \
+              -- "${f}"
+          done
           sudo apt-get update
 
       - name: Install the Ubuntu build dependencies

@@ -21,10 +21,6 @@ jobs:
     runs-on: ubuntu-${{ matrix.runner_version }}
     permissions:
       contents: write
-    env:
-      NVIDIA_DRIVER_VERSION: "535"
-      NVIDIA_CUDA_VERSION: "12-2"
-      CUDA_KEYRING_VERSION: "1.1-1"
     steps:
       - name: Prepare the environment
         run: |
@@ -58,15 +54,7 @@ jobs:
 
       - name: Install the NVIDIA build dependencies
         run: |
-          sudo apt-get -y install ca-certificates curl
-          source /etc/os-release
-          curl -LO "https://developer.download.nvidia.com/compute/cuda/repos/${ID}$(echo ${VERSION_ID} | tr -d ".")/x86_64/cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
-          sudo dpkg -i "cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
-          sudo ln -s "/usr/local/cuda-$(echo "${NVIDIA_CUDA_VERSION}" | tr "-" "." )" /usr/local/cuda
-          sudo apt-get update
-          sudo apt-get -y install \
-            "libnvidia-compute-${NVIDIA_DRIVER_VERSION}" \
-            "cuda-nvml-dev-${NVIDIA_CUDA_VERSION}"
+          sudo apt-get -y install libnvidia-ml-dev
 
       - name: Prepare the build directory
         run: mkdir "${BUILDDIR}"
@@ -96,10 +84,5 @@ jobs:
         with:
           body: |
             # Slurm ${{ env.SLURM_VERSION }} with gpu/nvml
-
-            Built with the following NVIDIA dependencies:
-
-            - libnvidia-compute-${{ env.NVIDIA_DRIVER_VERSION }}
-            - cuda-nvml-dev-${{ env.NVIDIA_CUDA_VERSION }}
           files: ${{ env.BUILDDIR }}.tar.gz
           fail_on_unmatched_files: true

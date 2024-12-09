@@ -17,70 +17,113 @@ jobs:
   build-debs-and-release:
     strategy:
       matrix:
-        runner_version: ["20.04", "22.04"]
+        runner_version: ["22.04", "24.04"]
     runs-on: ubuntu-${{ matrix.runner_version }}
     permissions:
       contents: write
-    env:
-      NVIDIA_DRIVER_VERSION: "535"
-      NVIDIA_CUDA_VERSION: "12-2"
-      CUDA_KEYRING_VERSION: "1.1-1"
     steps:
       - name: Prepare the environment
         run: |
           SLURM_VERSION="${{ github.ref_name }}"
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
+          UBUNTU_VERSION="${{ matrix.runner_version }}"
+          echo "UBUNTU_VERSION=${UBUNTU_VERSION}" >> "${GITHUB_ENV}"
 
           # Pick the correct source package based on the version being built.
-          SLURM_MAJOR="$(echo "$SLURM_VERSION" | grep -Eo '^[0-9]+\.' | grep -Eo '[0-9]+')"
-          if [ "${SLURM_MAJOR}" == "19" ]; then
-            SLURM_SRC_PKG="slurm-llnl"
-            DEB_SOURCE_REPO="focal universe"
-          else
-            SLURM_SRC_PKG="slurm-wlm"
-            DEB_SOURCE_REPO="jammy universe"
-          fi
+          SLURM_SRC_PKG="slurm-wlm"
+          case "${SLURM_VERSION}" in
+            21.08.* )
+              DEB_SOURCE_REPO="jammy universe"
+              ;;
+            23.10.* )
+              DEB_SOURCE_REPO="mantic universe"
+              ;;
+            24.04.* )
+              DEB_SOURCE_REPO="noble universe"
+              ;;
+            24.10.* )
+              DEB_SOURCE_REPO="oracular universe"
+              ;;
+            * )
+              1>&2 echo "No deb source repo for Slurm version ${SLURM_VERSION}"
+              false
+              ;;
+          esac
           echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
-          BUILDDIR="${SLURM_SRC_PKG}-${SLURM_VERSION}-ubuntu${{ matrix.runner_version }}-debs"
+          # Patch the build files to build separate slurm-wlm-nvml-plugin
+          # package and be able to build on newer and/or older OS versions.
+          # These use sed etc. instead of actual .patch files since otherwise
+          # we'd need to maintain version-specific .patch files.
+          PATCHES_SH="$(pwd)/patches.sh"
+          >> "${PATCHES_SH}" echo '#! /bin/sh -xeu'
+          chmod +x -- "${PATCHES_SH}"
+          >> "${PATCHES_SH}" cat \
+            ./patches/add-slurm-wlm-nvml-plugin.sh \
+            ./patches/libslurm-slurm_strlcpy-only-ifndef-HAVE_STRLCPY.sh \
+            ./patches/drop-dpkg-dev-debhelper-min-version-constraints.sh
+          [ "${UBUNTU_VERSION%%.*}" -lt 23 ] &&
+            >> "${PATCHES_SH}" cat \
+              ./patches/remove-slurm-wlm-rsmi-plugin.sh
+          [ "${UBUNTU_VERSION%%.*}" -lt 21 ] &&
+            >> "${PATCHES_SH}" cat \
+              ./patches/revert-to-pmix-3-prefix.sh
+          echo "PATCHES_SH=${PATCHES_SH}" >> "${GITHUB_ENV}"
+
+          BUILDDIR="${SLURM_SRC_PKG}-${SLURM_VERSION}-ubuntu${UBUNTU_VERSION}-debs"
           echo "BUILDDIR=${BUILDDIR}" >> "${GITHUB_ENV}"
 
       - name: Enable the source repository
         run: |
-          echo "deb-src http://archive.ubuntu.com/ubuntu ${DEB_SOURCE_REPO}" | sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          echo "deb-src http://archive.ubuntu.com/ubuntu/ ${DEB_SOURCE_REPO}" |
+            sudo tee -a /etc/apt/sources.list.d/debsrc.list
+          # Use old-releases.ubuntu.com for non-LTS EOL versions.
+          for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+            sed -Ei \
+              '/ubuntu\.com\/ubuntu\/ (kinetic|lunar|mantic)/ {
+                s|http://[^.]*|http://old-releases|
+              }' \
+              -- "${f}"
+          done
           sudo apt-get update
 
-      - name: Install the Ubuntu build dependencies
+      - name: Install the Ubuntu build tools
         run: |
-          sudo apt-get -y build-dep --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
-          sudo apt-get -y install --no-install-recommends devscripts
+          sudo apt-get -y install --no-install-recommends \
+            devscripts equivs
 
       - name: Install the NVIDIA build dependencies
         run: |
-          sudo apt-get -y install ca-certificates curl
-          source /etc/os-release
-          curl -LO "https://developer.download.nvidia.com/compute/cuda/repos/${ID}$(echo ${VERSION_ID} | tr -d ".")/x86_64/cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
-          sudo dpkg -i "cuda-keyring_${CUDA_KEYRING_VERSION}_all.deb"
-          sudo ln -s "/usr/local/cuda-$(echo "${NVIDIA_CUDA_VERSION}" | tr "-" "." )" /usr/local/cuda
-          sudo apt-get update
-          sudo apt-get -y install \
-            "libnvidia-compute-${NVIDIA_DRIVER_VERSION}" \
-            "cuda-nvml-dev-${NVIDIA_CUDA_VERSION}"
+          sudo apt-get -y install libnvidia-ml-dev
 
       - name: Prepare the build directory
         run: mkdir "${BUILDDIR}"
 
-      - name: Build the package
+      - name: Download the build sources
         working-directory: ${{ env.BUILDDIR }}
         run: |
           sudo apt-get source --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
-          cd "$(find -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          cd "${SLURM_SRC_PKG}-"*
+          "${PATCHES_SH}"
+
+      - name: Install the build dependencies
+        working-directory: ${{ env.BUILDDIR }}
+        run: |
+          cd "${SLURM_SRC_PKG}-"*
+          mk-build-deps \
+            -t 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y' \
+            -i debian/control
+
+      - name: Build the package
+        working-directory: ${{ env.BUILDDIR }}
+        run: |
+          cd "${SLURM_SRC_PKG}-"*
           debuild -us -uc -b
 
       - name: Verify that the nvml library was built
         working-directory: ${{ env.BUILDDIR }}
-        run: dpkg-deb -c slurm-wlm-basic-plugins_*_amd64.deb | grep gpu_nvml.so > /dev/null
+        run: dpkg-deb -c slurm-wlm-nvml-plugin_*_amd64.deb | grep -q gpu_nvml.so
 
       - name: Create the release archive
         run: |
@@ -96,10 +139,5 @@ jobs:
         with:
           body: |
             # Slurm ${{ env.SLURM_VERSION }} with gpu/nvml
-
-            Built with the following NVIDIA dependencies:
-
-            - libnvidia-compute-${{ env.NVIDIA_DRIVER_VERSION }}
-            - cuda-nvml-dev-${{ env.NVIDIA_CUDA_VERSION }}
           files: ${{ env.BUILDDIR }}.tar.gz
           fail_on_unmatched_files: true

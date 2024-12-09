@@ -96,10 +96,6 @@ jobs:
           sudo apt-get -y install --no-install-recommends \
             devscripts equivs
 
-      - name: Install the NVIDIA build dependencies
-        run: |
-          sudo apt-get -y install libnvidia-ml-dev
-
       - name: Prepare the build directory
         run: mkdir "${BUILDDIR}"
 

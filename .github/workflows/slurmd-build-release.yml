@@ -26,6 +26,8 @@ jobs:
         run: |
           SLURM_VERSION="${{ github.ref_name }}"
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
+          UBUNTU_VERSION="${{ matrix.runner_version }}"
+          echo "UBUNTU_VERSION=${UBUNTU_VERSION}" >> "${GITHUB_ENV}"
 
           # Pick the correct source package based on the version being built.
           SLURM_SRC_PKG="slurm-wlm"
@@ -50,7 +52,26 @@ jobs:
           echo "SLURM_SRC_PKG=${SLURM_SRC_PKG}" >> "${GITHUB_ENV}"
           echo "DEB_SOURCE_REPO=${DEB_SOURCE_REPO}" >> "${GITHUB_ENV}"
 
-          BUILDDIR="${SLURM_SRC_PKG}-${SLURM_VERSION}-ubuntu${{ matrix.runner_version }}-debs"
+          # Patch the build files to build separate slurm-wlm-nvml-plugin
+          # package and be able to build on newer and/or older OS versions.
+          # These use sed etc. instead of actual .patch files since otherwise
+          # we'd need to maintain version-specific .patch files.
+          PATCHES_SH="$(pwd)/patches.sh"
+          >> "${PATCHES_SH}" echo '#! /bin/sh -xeu'
+          chmod +x -- "${PATCHES_SH}"
+          >> "${PATCHES_SH}" cat \
+            ./patches/add-slurm-wlm-nvml-plugin.sh \
+            ./patches/libslurm-slurm_strlcpy-only-ifndef-HAVE_STRLCPY.sh \
+            ./patches/drop-dpkg-dev-debhelper-min-version-constraints.sh
+          [ "${UBUNTU_VERSION%%.*}" -lt 23 ] &&
+            >> "${PATCHES_SH}" cat \
+              ./patches/remove-slurm-wlm-rsmi-plugin.sh
+          [ "${UBUNTU_VERSION%%.*}" -lt 21 ] &&
+            >> "${PATCHES_SH}" cat \
+              ./patches/revert-to-pmix-3-prefix.sh
+          echo "PATCHES_SH=${PATCHES_SH}" >> "${GITHUB_ENV}"
+
+          BUILDDIR="${SLURM_SRC_PKG}-${SLURM_VERSION}-ubuntu${UBUNTU_VERSION}-debs"
           echo "BUILDDIR=${BUILDDIR}" >> "${GITHUB_ENV}"
 
       - name: Enable the source repository
@@ -83,6 +104,8 @@ jobs:
         working-directory: ${{ env.BUILDDIR }}
         run: |
           sudo apt-get source --only-source "${SLURM_SRC_PKG}=${SLURM_VERSION}"
+          cd "${SLURM_SRC_PKG}-"*
+          "${PATCHES_SH}"
 
       - name: Install the build dependencies
         working-directory: ${{ env.BUILDDIR }}
@@ -100,7 +123,7 @@ jobs:
 
       - name: Verify that the nvml library was built
         working-directory: ${{ env.BUILDDIR }}
-        run: dpkg-deb -c slurm-wlm-basic-plugins_*_amd64.deb | grep gpu_nvml.so > /dev/null
+        run: dpkg-deb -c slurm-wlm-nvml-plugin_*_amd64.deb | grep -q gpu_nvml.so
 
       - name: Create the release archive
         run: |

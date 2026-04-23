@@ -154,7 +154,7 @@ jobs:
             "${BUILDDIR}"/*.build
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@7
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.ubuntu-version }}
           path: ${{ env.BUILDDIR }}.tar.gz
@@ -171,7 +171,7 @@ jobs:
         ubuntu-version: ${{ needs.def-targets.outputs.* }}
     steps:
       - name: Download release artifact
-        uses: actions/download-artifact@8
+        uses: actions/download-artifact@v8
         with:
           name: ${{ matrix.ubuntu-version }}
           path: artifact

@@ -14,13 +14,22 @@ env:
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
-  build-debs-and-release:
+  def-targets:
+    outputs:
+      ubuntu-version:
+        - "22.04"
+        - "24.04"
+        - "26.04"
+
+  build-debs:
+    needs:
+      - def-targets
     strategy:
       matrix:
-        runner_version: ["22.04", "24.04", "26.04"]
-    runs-on: ubuntu-${{ matrix.runner_version }}
-    permissions:
-      contents: write
+        ubuntu-version: ${{ needs.def-targets.outputs.ubuntu-version) }}
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:${{ matrix.ubuntu-version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -29,9 +38,8 @@ jobs:
         run: |
           SLURM_VERSION="${{ github.ref_name }}"
           echo "SLURM_VERSION=${SLURM_VERSION}" >> "${GITHUB_ENV}"
-          UBUNTU_VERSION="${{ matrix.runner_version }}"
+          UBUNTU_VERSION="${{ matrix.ubuntu-version }}"
           echo "UBUNTU_VERSION=${UBUNTU_VERSION}" >> "${GITHUB_ENV}"
-
           # Pick the correct source package based on the version being built.
           SLURM_SRC_PKG="slurm-wlm"
           case "${SLURM_VERSION}" in
@@ -142,10 +150,33 @@ jobs:
             "${BUILDDIR}"/*.changes \
             "${BUILDDIR}"/*.build
 
+      - name: Upload release artifact
+        uses: actions/upload-artifact@7
+        with:
+          name: ${{ matrix.ubuntu-version }}
+          path: ${{ env.BUILDDIR }}.tar.gz
+
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs:
+      - def-targets
+      - build-debs
+    strategy:
+      matrix:
+        ubuntu-version: ${{ needs.def-targets.outputs.ubuntu-version }}
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@8
+        with:
+          name: ${{ matrix.ubuntu-version }}
+          path: artifact
       - name: Create the release
         uses: softprops/action-gh-release@v3
         with:
           body: |
             # Slurm ${{ env.SLURM_VERSION }} with gpu/nvml
-          files: ${{ env.BUILDDIR }}.tar.gz
+          files: |
+            artifact/*.tar.gz
           fail_on_unmatched_files: true

@@ -14,24 +14,22 @@ jobs:
 
     steps:
       - name: Delete images older than a month built by pull requests
-        uses: snok/container-retention-policy@v2
+        uses: snok/container-retention-policy@v3
         with:
           image-names: "*"
-          filter-tags: pr-*
-          cut-off: One month ago UTC
-          account-type: org
-          org-name: ${{ github.repository_owner }}
+          image-tags: "pr-*"
+          cut-off: 1M
+          account: ${{ github.repository_owner }}
           # The default Github token cannot be used here as deleting packages
           # requires a personal access token with the appropriate permissions.
           # See https://github.com/snok/container-retention-policy#token.
           token: ${{ secrets.PAT_HFRSCHMIDT }}
 
       - name: Delete untagged images older than a month
-        uses: snok/container-retention-policy@v2
+        uses: snok/container-retention-policy@v3
         with:
           image-names: "*"
           untagged-only: true
-          cut-off: One month ago UTC
-          account-type: org
-          org-name: ${{ github.repository_owner }}
+          cut-off: 1M
+          account: ${{ github.repository_owner }}
           token: ${{ secrets.PAT_HFRSCHMIDT }}

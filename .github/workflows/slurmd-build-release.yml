@@ -23,7 +23,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare the environment
         run: |
@@ -143,7 +143,7 @@ jobs:
             "${BUILDDIR}"/*.build
 
       - name: Create the release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           body: |
             # Slurm ${{ env.SLURM_VERSION }} with gpu/nvml

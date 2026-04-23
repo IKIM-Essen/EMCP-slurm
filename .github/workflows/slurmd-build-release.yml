@@ -20,6 +20,9 @@ jobs:
       ubuntu-22_04: "22.04"
       ubuntu-24_04: "24.04"
       ubuntu-26_04: "26.04"
+    steps:
+      - run: |
+        # job only defines outputs
 
   build-debs:
     needs:

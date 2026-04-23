@@ -53,6 +53,9 @@ jobs:
             24.11.* )
               DEB_SOURCE_REPO="questing universe"
               ;;
+            25.11.* )
+              DEB_SOURCE_REPO="resolute universe"
+              ;;
             * )
               1>&2 echo "No deb source repo for Slurm version ${SLURM_VERSION}"
               false

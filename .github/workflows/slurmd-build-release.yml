@@ -15,18 +15,18 @@ env:
 
 jobs:
   def-targets:
+    runs-on: ubuntu-latest
     outputs:
-      ubuntu-version:
-        - "22.04"
-        - "24.04"
-        - "26.04"
+      ubuntu-22_04: "22.04"
+      ubuntu-24_04: "24.04"
+      ubuntu-26_04: "26.04"
 
   build-debs:
     needs:
       - def-targets
     strategy:
       matrix:
-        ubuntu-version: ${{ needs.def-targets.outputs.ubuntu-version) }}
+        ubuntu-version: ${{ needs.def-targets.outputs.* }}
     runs-on: ubuntu-latest
     container:
       image: ubuntu:${{ matrix.ubuntu-version }}
@@ -165,7 +165,7 @@ jobs:
       - build-debs
     strategy:
       matrix:
-        ubuntu-version: ${{ needs.def-targets.outputs.ubuntu-version }}
+        ubuntu-version: ${{ needs.def-targets.outputs.* }}
     steps:
       - name: Download release artifact
         uses: actions/download-artifact@8
